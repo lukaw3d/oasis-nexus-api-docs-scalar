@@ -3,13 +3,17 @@
 openapi: 3.0.3
 info:
   title: Oasis Nexus API V1
-  description: An API for accessing indexed data from the Oasis Network.
+  description: |
+    An API for accessing indexed data from the Oasis Network.
+
+    <!-- Acts as a separator after search in sidebar -->
+    # Endpoints
   version: 0.1.0
 
 servers:
-  - url: http://nexus.oasis.io/v1
+  - url: https://nexus.oasis.io/v1
     description: Mainnet index endpoint.
-  - url: http://testnet.nexus.oasis.io/v1
+  - url: https://testnet.nexus.oasis.io/v1
     description: Testnet index endpoint.
 
 x-query-params:
@@ -79,10 +83,14 @@ x-examples:
     - &block_height_2 8049555
   block-hash:
     - &block_hash_1 '0a29ac21fa69bb9e43e5cb25d10826ff3946f1ce977e82f99a2614206a50765c'
+  state-root:
+    - &state_root_1 '8e39bf193f8a954ab8f8d7cb6388c591fd0785ea060bbd8e3752e266b54499d3'
   tx-hash:
     - &tx_hash_1 '0d0531d6b8a468c07440182b1cdda517f5a076d69fb2199126a83082ecfc0f41'
   tx-body:
     - &tx_body_1 '{"amount":"1000000000","account":"oasis1qpg2xuz46g53737343r20yxeddhlvc2ldqsjh70p"}'
+  parameters-change:
+    - &parameters_change_1 '{"min_validators":null,"max_validators":"120","voting_power_distribution":null}'
   epoch:
     - &epoch_1 8048956
     - &epoch_2 8048966
@@ -115,6 +123,8 @@ x-examples:
     - &iso_timestamp_3 '2022-10-15T00:05:34Z'
   time-duration:
     - &time_duration_1 '72h3m0.5s'
+  validator-media:
+    - &validator_media_1 '{"email":"validator@example.net","keybase":"validator_keybase","name":"Example Validator","twitter":"validator_twitter","url":"https://example.com","logoUrl": "https://example.com/logo.png"}'
 
 x-err-responses:
   common-errors: &common_error_responses
@@ -238,23 +248,6 @@ paths:
             type: string
           description: A filter on related accounts.
           example: *staking_address_1
-        - in: query
-          name: minFee
-          schema:
-            allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: A filter on minimum transaction fee, inclusive.
-          example: "1000"
-        - in: query
-          name: maxFee
-          schema:
-            allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: A filter on maximum transaction fee, inclusive.
-          example: "100000000000000000000000"
-        - in: query
-          name: code
-          schema:
-            type: integer
-          description: A filter on transaction status code.
         - in: query
           name: after
           schema:
@@ -484,10 +477,17 @@ paths:
 
   /consensus/validators:
     get:
-      summary: Returns a list of validators registered at the consensus layer.
+      summary: Returns a list of validators registered at the consensus layer (the list includes all registered entities, even those without a currently active validator node).
       parameters:
         - *limit
         - *offset
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: |
+            A filter on the validator name. Every returned validator will have
+            a name that is a superstring of the input param.
       responses:
         '200':
           description: |
@@ -522,50 +522,14 @@ paths:
 
   /consensus/accounts:
     get:
-      summary: Returns a list of consensus layer accounts.
+      summary: |
+        Returns a list of consensus layer accounts.
+        Note that for performance reasons, the info returned by this endpoint
+        may be slightly stale (<2 minutes). For the most up-to-date account state,
+        query the single-account endpoint.
       parameters:
         - *limit
         - *offset
-        - in: query
-          name: minAvailable
-          schema:
-            allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: A filter on the minimum available account balance.
-        - in: query
-          name: maxAvailable
-          schema:
-            allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: A filter on the maximum available account balance.
-        - in: query
-          name: minEscrow
-          schema:
-            allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: A filter on the minimum active escrow account balance.
-        - in: query
-          name: maxEscrow
-          schema:
-            allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: A filter on the maximum active escrow account balance.
-        - in: query
-          name: minDebonding
-          schema:
-            allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: A filter on the minimum debonding account balance.
-        - in: query
-          name: maxDebonding
-          schema:
-            allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: A filter on the maximum debonding account balance.
-        - in: query
-          name: minTotalBalance
-          schema:
-            allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: A filter on the minimum total account balance.
-        - in: query
-          name: maxTotalBalance
-          schema:
-            allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: A filter on the maximum total account balance.
       responses:
         '200':
           description: |
@@ -1128,7 +1092,7 @@ paths:
         - in: path
           name: address
           required: true
-          schema: 
+          schema:
             allOf: [$ref: '#/components/schemas/EthOrOasisAddress']
           description: The staking address of the account to return.
       responses:
@@ -1241,13 +1205,13 @@ components:
       type: string
       # NOTE: Change IsValid() in util.go if you change this.
       # https://github.com/oasisprotocol/nexus/blob/v0.0.16/api/v1/types/util.go#L40
-      enum: [emerald, sapphire, pontusx, pontusxdev, cipher, consensus]
+      enum: [emerald, sapphire, pontusxtest, pontusxdev, cipher, consensus]
 
     Runtime:
       type: string
       # NOTE: Change IsValid() in util.go if you change this.
       # https://github.com/oasisprotocol/nexus/blob/v0.0.16/api/v1/types/util.go#L49
-      enum: [emerald, sapphire, pontusx, pontusxdev, cipher]
+      enum: [emerald, sapphire, pontusxtest, pontusxdev, cipher]
 
     StakingAddress:
       type: string
@@ -1342,7 +1306,7 @@ components:
 
     Block:
       type: object
-      required: [height, hash, timestamp, num_transactions] # TODO: size, gas_used
+      required: [height, hash, timestamp, num_transactions, gas_limit, epoch, state_root] # TODO: proposer, size, gas_used
       properties:
         height:
           type: integer
@@ -1363,6 +1327,25 @@ components:
           format: int32
           description: Number of transactions in the block.
           example: 17
+        gas_limit:
+          allOf: [$ref: '#/components/schemas/TextBigInt']
+          description: |
+            The gas limit for the block. A gas limit 0 means that the max block gas was unlimited.
+            Blocks from Cobalt, Damask, and early Eden had no gas limit as their sizes were only
+            restricted by byte size until an upgrade during Eden introduced a gas limit.
+        size_limit:
+          allOf: [$ref: '#/components/schemas/TextBigInt']
+          description: |
+            The size limit for the block in bytes.
+        epoch:
+          type: integer
+          format: int64
+          description: The epoch number of the epoch in which the block was produced.
+          example: *epoch_1
+        state_root:
+          type: string
+          description: The Merkle root of the state tree after applying the block.
+          example: *state_root_1
         # TODO: Not available on backend
         # size:
         #   type: integer
@@ -1452,22 +1435,40 @@ components:
     ConsensusTxMethod:
       type: string
       enum:
-        - staking.Transfer
-        - staking.AddEscrow
-        - staking.ReclaimEscrow
-        - staking.AmendCommissionSchedule
-        - staking.Allow
-        - staking.Withdraw
-        - roothash.ExecutorCommit
-        - roothash.ExecutorProposerTimeout
-        - registry.RegisterEntity
-        - registry.RegisterNode
-        - registry.RegisterRuntime
-        - governance.CastVote
-        - governance.SubmitProposal
         - beacon.PVSSCommit
         - beacon.PVSSReveal
         - beacon.VRFProve
+        - consensus.Meta
+        - governance.CastVote
+        - governance.SubmitProposal
+        - keymanager.PublishEphemeralSecret
+        - keymanager.PublishMasterSecret
+        - keymanager.UpdatePolicy
+        - registry.DeregisterEntity
+        - registry.ProveFreshness
+        - registry.RegisterEntity
+        - registry.RegisterNode
+        - registry.RegisterRuntime
+        - registry.UnfreezeNode
+        - roothash.Evidence
+        - roothash.ExecutorCommit
+        - roothash.ExecutorProposerTimeout
+        - roothash.SubmitMsg
+        - staking.AddEscrow
+        - staking.Allow
+        - staking.AmendCommissionSchedule
+        - staking.Burn
+        - staking.ReclaimEscrow
+        - staking.Transfer
+        - staking.Withdraw
+        # Added in v24.0.
+        - keymanager/churp.Apply
+        - keymanager/churp.Confirm
+        - keymanager/churp.Create
+        - keymanager/churp.Update
+        - vault.AuthorizeAction
+        - vault.CancelAction
+        - vault.Create
       example: staking.Transfer
 
     TransactionList:
@@ -1485,7 +1486,7 @@ components:
 
     Transaction:
       type: object
-      required: [block, index, timestamp, hash, sender, nonce, fee, method, body, success]
+      required: [block, index, timestamp, hash, sender, nonce, fee, gas_limit, method, body, success]
       properties:
         block:
           type: integer
@@ -1523,6 +1524,10 @@ components:
             The fee that this transaction's sender committed
             to pay to execute it.
           example: 1000
+        gas_limit:
+          allOf: [$ref: '#/components/schemas/TextBigInt']
+          description: |
+            The maximum gas that a transaction can use.
         method:
           allOf: [$ref: '#/components/schemas/ConsensusTxMethod']
           description: The method that was called.
@@ -1530,8 +1535,8 @@ components:
           type: object
           description: The method call body. This spec does not encode the many possible types;
             instead, see [the Go API](https://pkg.go.dev/github.com/oasisprotocol/oasis-core/go) of oasis-core.
-            This object will conform to one of the types passed to variable instantiations using `NewMethodName` 
-            two levels down the hierarchy, e.g. `MethodTransfer` from `oasis-core/go/staking/api` seen 
+            This object will conform to one of the types passed to variable instantiations using `NewMethodName`
+            two levels down the hierarchy, e.g. `MethodTransfer` from `oasis-core/go/staking/api` seen
             [here](https://pkg.go.dev/github.com/oasisprotocol/oasis-core/go@v0.2300.10/staking/api#pkg-variables).
           example: *tx_body_1
         success:
@@ -1561,9 +1566,9 @@ components:
             This field, like `code` and `module`, can represent an error that originated
             anywhere in the paratime, i.e. either inside or outside a smart contract.
 
-            A common special case worth calling out: When the paratime is 
-            EVM-compatible (e.g. Emerald or Sapphire) and the error originates 
-            inside a smart contract (using `revert` in solidity), the following 
+            A common special case worth calling out: When the paratime is
+            EVM-compatible (e.g. Emerald or Sapphire) and the error originates
+            inside a smart contract (using `revert` in solidity), the following
             will be true:
             - `module` will be "evm" and `code` will be 8; see [here](https://github.com/oasisprotocol/oasis-sdk/blob/runtime-sdk/v0.8.3/runtime-sdk/modules/evm/src/lib.rs#L128) for other possible errors in the `evm` module.
             - `message` will contain the best-effort human-readable revert reason.
@@ -1573,12 +1578,12 @@ components:
             allOf: [$ref: '#/components/schemas/EvmAbiParam']
           description: |
             The error parameters, as decoded using the contract abi. Present only when
-            - the error originated from within a smart contract (e.g. via `revert` in Solidity), and 
+            - the error originated from within a smart contract (e.g. via `revert` in Solidity), and
             - the contract is verified or the revert reason is a plain String.
             If this field is present, `message` will include the name of the error, e.g. 'InsufficentBalance'.
             Note that users should be cautious when evaluating error data since the
             data origin is not tracked and error information can be faked.
-            
+
     ConsensusEventType:
       type: string
       enum:
@@ -1835,34 +1840,34 @@ components:
       type: object
       # All of the fields are optional.
       properties:
-        website_link:
+        url:
           type: string
           description: An URL associated with the entity.
-        email_address:
+        email:
           type: string
-          description: An email address for the validator.
-        twitter_acc:
+          description: An email address associated with the entity.
+        twitter:
           type: string
-          description: A Twitter handle.
-        tg_chat:
+          description: Twitter handle.
+        keybase:
           type: string
-          description: An Telegram handle.
-        logotype:
-          type: string
-          description: A logo type.
+          description: Keybase handle.
         name:
           type: string
-          description: The human-readable name of this validator.
+          description: The human-readable name of this entity.
           example: WhaleStake
+        logoUrl:
+          type: string
+          description: URL to a logo image for the entity.
 
     Validator:
       type: object
-      required: [entity_address, entity_id, node_id, escrow, active, status, current_rate, current_commission_bound]
+      required: [entity_address, entity_id, escrow, voting_power, voting_power_total, active, start_date, rank, in_validator_set, current_rate, current_commission_bound]
       properties:
         entity_address:
-            type: string
-            description: The staking address identifying this Validator.
-            example: *staking_address_1
+          type: string
+          description: The staking address identifying this Validator.
+          example: *staking_address_1
         entity_id:
           x-go-name: EntityID
           type: string
@@ -1874,16 +1879,34 @@ components:
           description: The public key identifying this Validator's node.
           example: *node_id_1
         escrow:
-          allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: The amount staked.
+          allOf: [$ref: '#/components/schemas/Escrow']
+          description: The escrow account data for this validator.
+        voting_power:
+          type: integer
+          format: int64
+          description: The voting power of this Validator.
+        voting_power_total:
+          type: integer
+          format: int64
+          description: The total voting power across all Validators.
         active:
           type: boolean
-          description: Whether the entity is part of validator set (top <scheduler.params.max_validators> by stake).
-        status:
-          type: boolean
           description: Whether the entity has a node that is registered for being a validator, node is up to date, and has successfully registered itself. It may or may not be part of validator set.
+        start_date:
+          type: string
+          format: date-time
+          description: The second-granular consensus time.
+          example: *iso_timestamp_3
+        rank:
+          type: integer
+          format: uint64
+          description: The rank of the Validator, determined by voting power.
+        in_validator_set:
+          type: boolean
+          description: Whether the entity is part of the validator set (top <scheduler.params.max_validators> by stake among active entities).
         media:
           allOf: [$ref: '#/components/schemas/ValidatorMedia']
+          example: *validator_media_1
         current_rate:
           type: integer
           format: uint64
@@ -1892,6 +1915,32 @@ components:
           allOf: [$ref: '#/components/schemas/ValidatorCommissionBound']
       description: |
         An validator registered at the consensus layer.
+
+    Escrow:
+      type: object
+      properties:
+        active_balance:
+          allOf: [$ref: '#/components/schemas/TextBigInt']
+          description: The amount of tokens that are delegated to this validator account, and are NOT in the process of debonding.
+        active_shares:
+          allOf: [$ref: '#/components/schemas/TextBigInt']
+          description: The shares of tokens that are delegated to this validator account, and are NOT in the process of debonding.
+        debonding_balance:
+          allOf: [$ref: '#/components/schemas/TextBigInt']
+          description: The amount of tokens that are delegated to this validator account, but are also in the process of debonding (i.e. they will be unstaked within ~2 weeks).
+        debonding_shares:
+          allOf: [$ref: '#/components/schemas/TextBigInt']
+          description: The shares of tokens that are delegated to this validator account, but are also in the process of debonding (i.e. they will be unstaked within ~2 weeks).
+        self_delegation_balance:
+          allOf: [$ref: '#/components/schemas/TextBigInt']
+          description: The amount of token this validator has delegated to itself, and are NOT in the process of debonding.
+        self_delegation_shares:
+          allOf: [$ref: '#/components/schemas/TextBigInt']
+          description: The shares of tokens this validator has delegated to itself, and are NOT in the process of debonding.
+        num_delegators:
+          type: integer
+          format: uint64
+          description: The number of accounts that have delegated token to this account.
 
     NodeList:
       allOf:
@@ -2092,7 +2141,7 @@ components:
 
     Account:
       type: object
-      required: [address, nonce, available, escrow, debonding, allowances, stats]
+      required: [address, nonce, available, escrow, debonding, delegations_balance, debonding_delegations_balance, allowances, stats]
       properties:
         address:
           type: string
@@ -2114,20 +2163,26 @@ components:
           description: The debonding escrow balance, in base units.
         delegations_balance:
           allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: |
-            The delegations balance, in base units.
-            For efficiency, this field is omitted when listing multiple-accounts.
+          description: The balance of this accounts' (outgoing) delegations, in base units.
+          example: 10000000000
         debonding_delegations_balance:
           allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: |
-            The debonding delegations balance, in base units.
-            For efficiency, this field is omitted when listing multiple-accounts.
+          description: The balance of this accounts' (outgoing) debonding delegations, in base units.
           example: 10000000000
+        first_activity:
+          type: string
+          format: date-time
+          description: |
+            The second-granular consensus time of the block in which this account was first active.
+            Dates before Cobalt (2021-04-28) are approximate.
+          example: *iso_timestamp_1
         allowances:
           type: array
           items:
             allOf: [$ref: '#/components/schemas/Allowance']
-          description: The allowances made by this account.
+          description: |
+            The allowances made by this account.
+            This field is omitted when listing multiple accounts.
         stats:
           allOf: [$ref: '#/components/schemas/AccountStats']
       description: |
@@ -2143,7 +2198,9 @@ components:
           example: *staking_address_2
         amount:
           allOf: [$ref: '#/components/schemas/TextBigInt']
-          description: The amount allowed for the allowed account.
+          description: |
+            The amount allowed for the allowed account.
+            This field is omitted when listing multiple accounts.
 
     EpochList:
       allOf:
@@ -2233,6 +2290,12 @@ components:
         deposit:
           allOf: [$ref: '#/components/schemas/TextBigInt']
           description: The deposit attached to this proposal.
+        title:
+          type: string
+          description: The (optional) title of the proposal.
+        description:
+          type: string
+          description: The (optional) description of the proposal.
         handler:
           type: string
           description: The name of the upgrade handler.
@@ -2255,11 +2318,11 @@ components:
             The name of the module whose parameters are to be changed
             by this 'parameters_change' proposal.
         parameters_change:
-          type: string
-          format: byte
-          description: |
-            The base64 encoded raw cbor representing the updated parameters
-            which are to be changed by this 'parameters_change' proposal.
+          description: The parameters change proposal body. This spec does not encode the many possible types;
+            instead, see [the Go API](https://pkg.go.dev/github.com/oasisprotocol/oasis-core/go) of oasis-core.
+            This object will conform to one of the `ConsensusParameterChanges` types,
+            depending on the `parameters_change_module`.
+          example: *parameters_change_1
         created_at:
           type: integer
           format: int64
@@ -2424,13 +2487,13 @@ components:
             This object will conform to one of the `*Event` types two levels down
             the hierarchy (e.g. `MintEvent` from `accounts > Event > MintEvent`),
             OR `evm > Event`. For object fields that specify an oasis-style address, Nexus
-            will add a field specifying the corresponding Ethereum address, if known. Currently, 
+            will add a field specifying the corresponding Ethereum address, if known. Currently,
             the only such possible fields are `from_eth`, `to_eth`, and `owner_eth`.
         evm_log_name:
           type: string
           description: |
-            If the event type is `evm.log`, this field describes the human-readable type of 
-            evm event, e.g. `Transfer`. 
+            If the event type is `evm.log`, this field describes the human-readable type of
+            evm event, e.g. `Transfer`.
             Absent if the event type is not `evm.log`.
           example: 'Transfer'
         evm_log_params:
@@ -2581,7 +2644,7 @@ components:
     RuntimeTransaction:
       type: object
       # NOTE: Not guaranteed to be present: eth_hash, to, amount.
-      required: [round, index, timestamp, hash, sender_0, nonce_0, fee, charged_fee, gas_limit, gas_used, size]
+      required: [round, index, timestamp, hash, sender_0, nonce_0, fee, fee_symbol, charged_fee, gas_limit, gas_used, size]
       properties:
         round:
           type: integer
@@ -2632,8 +2695,12 @@ components:
           type: string
           description: |
             The fee that this transaction's sender committed to pay to execute
-            it (total, native denomination, ParaTime base units, as a string).
+            it (total ParaTime base units, as a string).
           example: "3000000000000000"
+        fee_symbol:
+          type: string
+          description: |
+            The denomination of the fee.
         gas_limit:
           type: integer
           format: uint64
@@ -2709,6 +2776,11 @@ components:
             applicable. The meaning varies based on the transaction method.
             Usually in native denomination, ParaTime units. As a string.
           example: "100000001666393459"
+        amount_symbol:
+          type: string
+          description: |
+            The denomination of the "amount" associated with this transaction, if applicable.
+          example: "ROSE"
         encryption_envelope:
           allOf: [$ref: '#/components/schemas/RuntimeTransactionEncryptionEnvelope']
           description: |
@@ -2898,6 +2970,7 @@ components:
             The number of addresses that have a nonzero balance of this token.
           example: 123
         is_verified:
+          deprecated: true
           type: boolean
           description: |
             Whether the contract has been successfully verified by Sourcify.
