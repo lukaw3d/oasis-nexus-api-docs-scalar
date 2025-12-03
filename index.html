@@ -9,7 +9,14 @@
 
 <script>
 (async () => {
-  const spec = await (await fetch('https://nexus.oasis.io/v1/spec/v1.yaml')).text()
+  const spec = (await (await fetch('https://nexus.oasis.io/v1/spec/v1.yaml')).text())
+    .replace(/\/consensus\/.*:\n\s+get:\n(\s+)/gm, '$&tags: ["consensus"]\n$1')
+    .replace(/\/\{runtime\}\/.*:\n\s+get:\n(\s+)/gm, '$&tags: ["runtime"]\n$1')
+    .replace(/\/\{layer\}\/.*:\n\s+get:\n(\s+)/gm, '$&tags: ["consensus", "runtime"]\n$1')
+    .replace(/ \/:\n\s+get:\n(\s+)/gm, '$&tags: ["consensus", "runtime"]\n$1')
+    .replace(/ \/recent_blocks:\n\s+get:\n(\s+)/gm, '$&tags: ["consensus", "runtime"]\n$1')
+    .replace(/ \/stats\/tx_volume:\n\s+get:\n(\s+)/gm, '$&tags: ["consensus", "runtime"]\n$1')
+
   Scalar.createApiReference('#app', {
     content: spec,
     proxyUrl: undefined,
