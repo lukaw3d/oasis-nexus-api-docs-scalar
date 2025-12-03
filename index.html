@@ -9,7 +9,7 @@
 
 <script>
 (async () => {
-  const spec = await (await fetch('./v1.yaml')).text()
+  const spec = await (await fetch('https://nexus.oasis.io/v1/spec/v1.yaml')).text()
   Scalar.createApiReference('#app', {
     content: spec,
     proxyUrl: undefined,
