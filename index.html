@@ -2,7 +2,33 @@
 <html>
 <head><meta charset="utf-8" /></head>
 <body>
-<script type="text/plain" id="api-reference" data-url="./v1.yaml" data-proxy-url="     "></script>
-<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.24.57/dist/browser/standalone.js" integrity="sha256-i0mR4tfE95LzOYCg5gTygzYDLxe6SOxS58TBKii4STc=" crossorigin="anonymous"></script>
+
+<div id="app"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.40.0/dist/browser/standalone.min.js" integrity="sha256-wVef2uf/CTKeqzuSaRpI6QnBGRUSx3vNMqASgAdEQ/Y=" crossorigin="anonymous"></script>
+
+<script>
+(async () => {
+  const spec = await (await fetch('./v1.yaml')).text()
+  Scalar.createApiReference('#app', {
+    content: spec,
+    proxyUrl: undefined,
+    withDefaultFonts: false,
+    telemetry: false,
+    hideModels: true,
+    defaultHttpClient: {
+      targetKey: 'js',
+      clientKey: 'fetch',
+    },
+
+    // Don't want to show these clients first on the list, but can not merely move them lower. Have to disable them.
+    hiddenClients: {
+      ruby: ['native'],
+      php: ['curl', 'guzzle'],
+    },
+  })
+})()
+</script>
+
 </body>
 </html>
